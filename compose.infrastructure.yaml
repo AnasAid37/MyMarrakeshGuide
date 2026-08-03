@@ -1,0 +1,47 @@
+name: my-marrakesh-guide-infrastructure
+
+services:
+  postgres:
+    image: postgres:18.4-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Run pnpm bootstrap:env first}
+      POSTGRES_USER: ${POSTGRES_USER:?Run pnpm bootstrap:env first}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run pnpm bootstrap:env first}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks: [data]
+
+  redis:
+    image: redis:8.2.8-alpine
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Run pnpm bootstrap:env first}
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?Run pnpm bootstrap:env first}"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a $$REDIS_PASSWORD ping | grep PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    networks: [data]
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  data:
+    driver: bridge

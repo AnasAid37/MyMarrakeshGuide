@@ -1,0 +1,40 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# builds
+.next/
+dist/
+coverage/
+.turbo/
+*.tsbuildinfo
+
+# environment and secrets
+.env
+.env.*
+!.env.example
+!.env.test.example
+
+# local tooling
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# logs
+*.log
+logs/
+
+# Prisma generated client
+packages/database/src/generated/
+
+# Docker volumes
+.docker-data/
+
+# test artifacts
+playwright-report/
+test-results/
+
+# generated exports
+exports/

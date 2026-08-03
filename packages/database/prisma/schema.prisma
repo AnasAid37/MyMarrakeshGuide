@@ -1,0 +1,1009 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+  runtime      = "nodejs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum GlobalRole {
+  USER
+  SUPPORT
+  CONTENT_EDITOR
+  CONTENT_REVIEWER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum OAuthProvider {
+  GOOGLE
+}
+
+enum HostStatus {
+  PENDING_REVIEW
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum HostRole {
+  OWNER
+  ADMIN
+  MANAGER
+  ANALYST
+}
+
+enum MembershipStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+  REVOKED
+}
+
+enum PropertyStatus {
+  DRAFT
+  PENDING_REVIEW
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum PlaceStatus {
+  DRAFT
+  IN_REVIEW
+  PUBLISHED
+  TEMPORARILY_CLOSED
+  PERMANENTLY_CLOSED
+  ARCHIVED
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+  STALE
+}
+
+enum PriceLevel {
+  FREE
+  BUDGET
+  MODERATE
+  PREMIUM
+  LUXURY
+}
+
+enum OpeningHourKind {
+  REGULAR
+  SEASONAL
+}
+
+enum TripStatus {
+  DRAFT
+  GENERATING
+  READY
+  FAILED
+  ARCHIVED
+  DELETED
+}
+
+enum TripVisibility {
+  PRIVATE
+  LINK
+}
+
+enum TripSource {
+  DIRECT
+  PROPERTY_QR
+  SHARED_TRIP
+  ADMIN
+}
+
+enum ActivityStatus {
+  PLANNED
+  COMPLETED
+  SKIPPED
+  REPLACED
+  CANCELLED
+}
+
+enum TravelMode {
+  WALKING
+  DRIVING
+  TRANSIT
+  CYCLING
+  TAXI
+}
+
+enum ReviewStatus {
+  PENDING
+  PUBLISHED
+  REJECTED
+  HIDDEN
+}
+
+enum SubscriptionStatus {
+  INCOMPLETE
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  PAUSED
+  CANCELLED
+  UNPAID
+}
+
+enum BillingInterval {
+  MONTH
+  YEAR
+}
+
+enum PaymentStatus {
+  PENDING
+  REQUIRES_ACTION
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+  CANCELLED
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+}
+
+enum NotificationStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+  CANCELLED
+}
+
+enum NotificationType {
+  SECURITY
+  BILLING
+  TRIP_READY
+  TRIP_UPDATED
+  REVIEW
+  HOST_INVITATION
+  SYSTEM
+}
+
+enum MediaKind {
+  IMAGE
+  VIDEO
+  DOCUMENT
+}
+
+enum MediaStatus {
+  UPLOADING
+  READY
+  REJECTED
+  ARCHIVED
+}
+
+enum PromptStatus {
+  PENDING
+  SUCCEEDED
+  INVALID_OUTPUT
+  FAILED
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  RESTORE
+  PUBLISH
+  UNPUBLISH
+  LOGIN
+  LOGOUT
+  INVITE
+  ACCEPT_INVITE
+  REVOKE
+  SUSPEND
+  ACTIVATE
+  PAYMENT
+  EXPORT
+}
+
+enum QrCodeStatus {
+  DRAFT
+  ACTIVE
+  DISABLED
+  ARCHIVED
+}
+
+enum ConsentType {
+  TERMS
+  PRIVACY
+  ANALYTICS
+  MARKETING_EMAIL
+  LOCATION
+}
+
+enum FeatureFlagType {
+  BOOLEAN
+  PERCENTAGE
+  RULES
+}
+
+enum SearchType {
+  PLACE
+  CATEGORY
+  NEIGHBORHOOD
+  GLOBAL
+}
+
+model User {
+  id                String       @id @default(uuid()) @db.Uuid
+  email             String       @unique @db.VarChar(320)
+  emailNormalized   String       @unique @map("email_normalized") @db.VarChar(320)
+  passwordHash      String?      @map("password_hash") @db.VarChar(255)
+  displayName       String       @map("display_name") @db.VarChar(120)
+  avatarUrl         String?      @map("avatar_url") @db.VarChar(2048)
+  globalRole        GlobalRole   @default(USER) @map("global_role")
+  status            UserStatus   @default(PENDING_VERIFICATION)
+  locale            String       @default("en") @db.VarChar(16)
+  timezone          String       @default("Africa/Casablanca") @db.VarChar(64)
+  emailVerifiedAt   DateTime?    @map("email_verified_at") @db.Timestamptz(3)
+  lastLoginAt       DateTime?    @map("last_login_at") @db.Timestamptz(3)
+  createdAt         DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt         DateTime?    @map("deleted_at") @db.Timestamptz(3)
+  oauthAccounts     OAuthAccount[]
+  refreshSessions   RefreshSession[]
+  hostMemberships   HostMember[]
+  trips             Trip[]
+  favorites         Favorite[]
+  reviews           Review[]
+  notifications     Notification[]
+  searchHistory     SearchHistory[]
+  consents          UserConsent[]
+  createdMedia      Media[]      @relation("MediaCreatedBy")
+  verifiedPlaces    Place[]      @relation("PlaceVerifiedBy")
+  placeVerifications PlaceVerification[] @relation("PlaceVerificationActor")
+  moderatedReviews  Review[]     @relation("ReviewModeratedBy")
+  promptHistory     PromptHistory[]
+  analyticsEvents   AnalyticsEvent[]
+  auditLogs          AuditLog[]  @relation("AuditActor")
+
+  @@index([status, createdAt])
+  @@map("users")
+}
+
+model OAuthAccount {
+  id                String        @id @default(uuid()) @db.Uuid
+  userId            String        @map("user_id") @db.Uuid
+  provider          OAuthProvider
+  providerAccountId String        @map("provider_account_id") @db.VarChar(255)
+  email             String?       @db.VarChar(320)
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("oauth_accounts")
+}
+
+model RefreshSession {
+  id             String           @id @default(uuid()) @db.Uuid
+  userId         String           @map("user_id") @db.Uuid
+  familyId       String           @map("family_id") @db.Uuid
+  tokenHash      String           @unique @map("token_hash") @db.VarChar(128)
+  userAgentHash  String?          @map("user_agent_hash") @db.VarChar(128)
+  ipHash         String?          @map("ip_hash") @db.VarChar(128)
+  expiresAt      DateTime         @map("expires_at") @db.Timestamptz(3)
+  lastUsedAt     DateTime?        @map("last_used_at") @db.Timestamptz(3)
+  revokedAt      DateTime?        @map("revoked_at") @db.Timestamptz(3)
+  revokeReason   String?          @map("revoke_reason") @db.VarChar(255)
+  replacedById   String?          @unique @map("replaced_by_id") @db.Uuid
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replacedBy     RefreshSession?  @relation("SessionRotation", fields: [replacedById], references: [id], onDelete: SetNull)
+  replaces       RefreshSession?  @relation("SessionRotation")
+
+  @@index([userId, expiresAt])
+  @@index([familyId])
+  @@map("refresh_sessions")
+}
+
+model UserConsent {
+  id          String      @id @default(uuid()) @db.Uuid
+  userId      String      @map("user_id") @db.Uuid
+  type        ConsentType
+  version     String      @db.VarChar(32)
+  granted     Boolean
+  grantedAt   DateTime    @map("granted_at") @db.Timestamptz(3)
+  withdrawnAt DateTime?   @map("withdrawn_at") @db.Timestamptz(3)
+  source      String      @db.VarChar(64)
+  ipHash      String?     @map("ip_hash") @db.VarChar(128)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type, grantedAt])
+  @@map("user_consents")
+}
+
+model Host {
+  id               String       @id @default(uuid()) @db.Uuid
+  legalName        String       @map("legal_name") @db.VarChar(180)
+  displayName      String       @map("display_name") @db.VarChar(120)
+  slug             String       @unique @db.VarChar(120)
+  status           HostStatus   @default(PENDING_REVIEW)
+  billingEmail     String       @map("billing_email") @db.VarChar(320)
+  stripeCustomerId String?      @unique @map("stripe_customer_id") @db.VarChar(255)
+  settings         Json         @default("{}")
+  verifiedAt       DateTime?    @map("verified_at") @db.Timestamptz(3)
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  archivedAt       DateTime?    @map("archived_at") @db.Timestamptz(3)
+  members          HostMember[]
+  properties       Property[]
+  subscriptions    Subscription[]
+  payments         Payment[]
+  auditLogs        AuditLog[]
+  analyticsEvents  AnalyticsEvent[]
+
+  @@index([status, createdAt])
+  @@map("hosts")
+}
+
+model HostMember {
+  id         String           @id @default(uuid()) @db.Uuid
+  hostId     String           @map("host_id") @db.Uuid
+  userId     String           @map("user_id") @db.Uuid
+  role       HostRole
+  status     MembershipStatus @default(INVITED)
+  invitedBy  String?          @map("invited_by") @db.Uuid
+  invitedAt  DateTime         @default(now()) @map("invited_at") @db.Timestamptz(3)
+  acceptedAt DateTime?        @map("accepted_at") @db.Timestamptz(3)
+  revokedAt  DateTime?        @map("revoked_at") @db.Timestamptz(3)
+  host       Host             @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([hostId, userId])
+  @@index([userId, status])
+  @@index([hostId, status])
+  @@map("host_members")
+}
+
+model Property {
+  id                String         @id @default(uuid()) @db.Uuid
+  hostId            String         @map("host_id") @db.Uuid
+  name              String         @db.VarChar(160)
+  slug              String         @db.VarChar(140)
+  status            PropertyStatus @default(DRAFT)
+  description       String?        @db.Text
+  addressLine1      String         @map("address_line_1") @db.VarChar(255)
+  addressLine2      String?        @map("address_line_2") @db.VarChar(255)
+  neighborhood      String?        @db.VarChar(120)
+  city              String         @default("Marrakesh") @db.VarChar(120)
+  postalCode        String?        @map("postal_code") @db.VarChar(24)
+  countryCode       String         @default("MA") @map("country_code") @db.Char(2)
+  latitude          Decimal        @db.Decimal(10, 7)
+  longitude         Decimal        @db.Decimal(10, 7)
+  timezone          String         @default("Africa/Casablanca") @db.VarChar(64)
+  contactEmail      String?        @map("contact_email") @db.VarChar(320)
+  contactPhone      String?        @map("contact_phone") @db.VarChar(32)
+  websiteUrl        String?        @map("website_url") @db.VarChar(2048)
+  checkInTime       String?        @map("check_in_time") @db.VarChar(5)
+  checkOutTime      String?        @map("check_out_time") @db.VarChar(5)
+  guideDefaults     Json           @default("{}") @map("guide_defaults")
+  verifiedAt        DateTime?      @map("verified_at") @db.Timestamptz(3)
+  activatedAt       DateTime?      @map("activated_at") @db.Timestamptz(3)
+  createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  archivedAt        DateTime?      @map("archived_at") @db.Timestamptz(3)
+  host              Host           @relation(fields: [hostId], references: [id], onDelete: Restrict)
+  media             PropertyMedia[]
+  qrCodes           QrCode[]
+  guestSessions     GuestSession[]
+  trips             Trip[]
+  analyticsEvents   AnalyticsEvent[]
+
+  @@unique([hostId, slug])
+  @@index([hostId, status])
+  @@index([latitude, longitude])
+  @@map("properties")
+}
+
+model Category {
+  id          String          @id @default(uuid()) @db.Uuid
+  parentId    String?         @map("parent_id") @db.Uuid
+  slug        String          @unique @db.VarChar(80)
+  name        String          @db.VarChar(100)
+  description String?         @db.VarChar(500)
+  icon        String?         @db.VarChar(64)
+  sortOrder   Int             @default(0) @map("sort_order")
+  isActive    Boolean         @default(true) @map("is_active")
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  parent      Category?       @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Category[]      @relation("CategoryTree")
+  places      PlaceCategory[]
+
+  @@index([parentId, sortOrder])
+  @@map("categories")
+}
+
+model Place {
+  id                     String             @id @default(uuid()) @db.Uuid
+  googlePlaceId          String?            @unique @map("google_place_id") @db.VarChar(255)
+  slug                   String             @unique @db.VarChar(180)
+  name                   String             @db.VarChar(180)
+  shortDescription       String             @map("short_description") @db.VarChar(280)
+  description            String             @db.Text
+  status                 PlaceStatus        @default(DRAFT)
+  verificationStatus     VerificationStatus @default(UNVERIFIED) @map("verification_status")
+  addressLine1           String             @map("address_line_1") @db.VarChar(255)
+  addressLine2           String?            @map("address_line_2") @db.VarChar(255)
+  neighborhood           String?            @db.VarChar(120)
+  city                   String             @default("Marrakesh") @db.VarChar(120)
+  postalCode             String?            @map("postal_code") @db.VarChar(24)
+  countryCode            String             @default("MA") @map("country_code") @db.Char(2)
+  latitude               Decimal            @db.Decimal(10, 7)
+  longitude              Decimal            @db.Decimal(10, 7)
+  priceLevel             PriceLevel         @default(MODERATE) @map("price_level")
+  averageVisitMinutes    Int                @default(60) @map("average_visit_minutes")
+  indoor                 Boolean            @default(false)
+  outdoor                Boolean            @default(false)
+  familyFriendly         Boolean            @default(false) @map("family_friendly")
+  accessibilitySupported Boolean            @default(false) @map("accessibility_supported")
+  bookingRequired        Boolean            @default(false) @map("booking_required")
+  phone                   String?            @db.VarChar(32)
+  websiteUrl             String?            @map("website_url") @db.VarChar(2048)
+  googleRating           Decimal?           @map("google_rating") @db.Decimal(2, 1)
+  googleRatingCount      Int?               @map("google_rating_count")
+  popularityScore        Decimal            @default(0) @map("popularity_score") @db.Decimal(6, 3)
+  crowdProfile           Json               @default("{}") @map("crowd_profile")
+  weatherSuitability     Json               @default("{}") @map("weather_suitability")
+  sourceUpdatedAt        DateTime?          @map("source_updated_at") @db.Timestamptz(3)
+  verifiedAt             DateTime?          @map("verified_at") @db.Timestamptz(3)
+  verifiedById           String?            @map("verified_by_id") @db.Uuid
+  publishedAt            DateTime?          @map("published_at") @db.Timestamptz(3)
+  closedAt               DateTime?          @map("closed_at") @db.Timestamptz(3)
+  createdAt              DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  verifiedBy             User?              @relation("PlaceVerifiedBy", fields: [verifiedById], references: [id], onDelete: SetNull)
+  categories             PlaceCategory[]
+  openingHours           OpeningHour[]
+  openingExceptions      OpeningHourException[]
+  media                  PlaceMedia[]
+  sources                PlaceSource[]
+  verifications          PlaceVerification[]
+  favorites              Favorite[]
+  reviews                Review[]
+  tripActivities         TripActivity[]
+
+  @@index([status, verificationStatus])
+  @@index([latitude, longitude])
+  @@index([priceLevel, popularityScore])
+  @@index([name])
+  @@map("places")
+}
+
+model PlaceCategory {
+  placeId    String   @map("place_id") @db.Uuid
+  categoryId String   @map("category_id") @db.Uuid
+  isPrimary  Boolean  @default(false) @map("is_primary")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  place      Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@id([placeId, categoryId])
+  @@index([categoryId, isPrimary])
+  @@map("place_categories")
+}
+
+model OpeningHour {
+  id          String          @id @default(uuid()) @db.Uuid
+  placeId     String          @map("place_id") @db.Uuid
+  kind        OpeningHourKind @default(REGULAR)
+  dayOfWeek   Int             @map("day_of_week") @db.SmallInt
+  opensAt     String?         @map("opens_at") @db.VarChar(5)
+  closesAt    String?         @map("closes_at") @db.VarChar(5)
+  isClosed    Boolean         @default(false) @map("is_closed")
+  validFrom   DateTime?       @map("valid_from") @db.Date
+  validUntil  DateTime?       @map("valid_until") @db.Date
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  place       Place           @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@index([placeId, dayOfWeek, validFrom, validUntil])
+  @@map("opening_hours")
+}
+
+model OpeningHourException {
+  id        String   @id @default(uuid()) @db.Uuid
+  placeId   String   @map("place_id") @db.Uuid
+  date      DateTime @db.Date
+  opensAt   String?  @map("opens_at") @db.VarChar(5)
+  closesAt  String?  @map("closes_at") @db.VarChar(5)
+  isClosed  Boolean  @default(false) @map("is_closed")
+  reason    String?  @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  place     Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@unique([placeId, date])
+  @@map("opening_hour_exceptions")
+}
+
+model PlaceSource {
+  id          String   @id @default(uuid()) @db.Uuid
+  placeId     String   @map("place_id") @db.Uuid
+  sourceType  String   @map("source_type") @db.VarChar(40)
+  sourceUrl   String?  @map("source_url") @db.VarChar(2048)
+  externalId  String?  @map("external_id") @db.VarChar(255)
+  payloadHash String?  @map("payload_hash") @db.VarChar(128)
+  observedAt  DateTime @map("observed_at") @db.Timestamptz(3)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  place       Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@index([placeId, sourceType, observedAt])
+  @@map("place_sources")
+}
+
+model PlaceVerification {
+  id            String             @id @default(uuid()) @db.Uuid
+  placeId       String             @map("place_id") @db.Uuid
+  status        VerificationStatus
+  checklist     Json               @default("{}")
+  notes         String?            @db.Text
+  verifiedById  String?            @map("verified_by_id") @db.Uuid
+  verifiedAt    DateTime?          @map("verified_at") @db.Timestamptz(3)
+  nextReviewAt  DateTime?          @map("next_review_at") @db.Timestamptz(3)
+  createdAt     DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  place         Place              @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  verifiedBy    User?              @relation("PlaceVerificationActor", fields: [verifiedById], references: [id], onDelete: SetNull)
+
+  @@index([placeId, createdAt])
+  @@index([status, nextReviewAt])
+  @@map("place_verifications")
+}
+
+model Media {
+  id          String      @id @default(uuid()) @db.Uuid
+  publicId    String      @unique @map("public_id") @db.VarChar(255)
+  kind        MediaKind
+  status      MediaStatus @default(UPLOADING)
+  secureUrl   String      @map("secure_url") @db.VarChar(2048)
+  format      String      @db.VarChar(32)
+  width       Int?
+  height      Int?
+  bytes       BigInt?
+  altText     String?     @map("alt_text") @db.VarChar(280)
+  blurHash    String?     @map("blur_hash") @db.VarChar(255)
+  metadata    Json        @default("{}")
+  createdById String?     @map("created_by_id") @db.Uuid
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+  archivedAt  DateTime?   @map("archived_at") @db.Timestamptz(3)
+  createdBy   User?       @relation("MediaCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  places      PlaceMedia[]
+  properties  PropertyMedia[]
+
+  @@index([status, kind])
+  @@map("media")
+}
+
+model PlaceMedia {
+  placeId  String  @map("place_id") @db.Uuid
+  mediaId  String  @map("media_id") @db.Uuid
+  sortOrder Int    @default(0) @map("sort_order")
+  isCover  Boolean @default(false) @map("is_cover")
+  place    Place   @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  media    Media   @relation(fields: [mediaId], references: [id], onDelete: Restrict)
+
+  @@id([placeId, mediaId])
+  @@index([placeId, sortOrder])
+  @@map("place_media")
+}
+
+model PropertyMedia {
+  propertyId String   @map("property_id") @db.Uuid
+  mediaId    String   @map("media_id") @db.Uuid
+  sortOrder  Int      @default(0) @map("sort_order")
+  isCover    Boolean  @default(false) @map("is_cover")
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  media      Media    @relation(fields: [mediaId], references: [id], onDelete: Restrict)
+
+  @@id([propertyId, mediaId])
+  @@index([propertyId, sortOrder])
+  @@map("property_media")
+}
+
+model QrCode {
+  id              String       @id @default(uuid()) @db.Uuid
+  propertyId      String       @map("property_id") @db.Uuid
+  code            String       @unique @db.VarChar(64)
+  label           String       @db.VarChar(120)
+  destinationPath String       @map("destination_path") @db.VarChar(512)
+  status          QrCodeStatus @default(DRAFT)
+  activatedAt     DateTime?    @map("activated_at") @db.Timestamptz(3)
+  disabledAt      DateTime?    @map("disabled_at") @db.Timestamptz(3)
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  property        Property     @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  guestSessions   GuestSession[]
+
+  @@index([propertyId, status])
+  @@map("qr_codes")
+}
+
+model GuestSession {
+  id                String           @id @default(uuid()) @db.Uuid
+  anonymousIdHash   String           @map("anonymous_id_hash") @db.VarChar(128)
+  propertyId        String?          @map("property_id") @db.Uuid
+  qrCodeId          String?          @map("qr_code_id") @db.Uuid
+  locale            String           @default("en") @db.VarChar(16)
+  analyticsConsent  Boolean          @default(false) @map("analytics_consent")
+  startedAt         DateTime         @default(now()) @map("started_at") @db.Timestamptz(3)
+  lastSeenAt        DateTime         @default(now()) @map("last_seen_at") @db.Timestamptz(3)
+  expiresAt         DateTime         @map("expires_at") @db.Timestamptz(3)
+  property          Property?        @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  qrCode            QrCode?          @relation(fields: [qrCodeId], references: [id], onDelete: SetNull)
+  trips             Trip[]
+  searchHistory     SearchHistory[]
+  analyticsEvents   AnalyticsEvent[]
+
+  @@index([propertyId, startedAt])
+  @@index([qrCodeId, startedAt])
+  @@index([expiresAt])
+  @@map("guest_sessions")
+}
+
+model Trip {
+  id                String         @id @default(uuid()) @db.Uuid
+  userId            String?        @map("user_id") @db.Uuid
+  guestSessionId    String?        @map("guest_session_id") @db.Uuid
+  propertyId        String?        @map("property_id") @db.Uuid
+  title             String         @db.VarChar(180)
+  status            TripStatus     @default(DRAFT)
+  visibility        TripVisibility @default(PRIVATE)
+  source            TripSource     @default(DIRECT)
+  startDate         DateTime       @map("start_date") @db.Date
+  endDate           DateTime       @map("end_date") @db.Date
+  timezone          String         @default("Africa/Casablanca") @db.VarChar(64)
+  partySize         Int            @default(1) @map("party_size")
+  partyComposition  Json           @default("{}") @map("party_composition")
+  preferences       Json           @default("{}")
+  budgetMin         Decimal?       @map("budget_min") @db.Decimal(12, 2)
+  budgetMax         Decimal?       @map("budget_max") @db.Decimal(12, 2)
+  currency          String         @default("MAD") @db.Char(3)
+  shareTokenHash    String?        @unique @map("share_token_hash") @db.VarChar(128)
+  shareExpiresAt    DateTime?      @map("share_expires_at") @db.Timestamptz(3)
+  generationVersion String?        @map("generation_version") @db.VarChar(40)
+  generatedAt       DateTime?      @map("generated_at") @db.Timestamptz(3)
+  createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  archivedAt        DateTime?      @map("archived_at") @db.Timestamptz(3)
+  deletedAt         DateTime?      @map("deleted_at") @db.Timestamptz(3)
+  user              User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  guestSession      GuestSession?  @relation(fields: [guestSessionId], references: [id], onDelete: SetNull)
+  property          Property?      @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  days              TripDay[]
+  promptHistory     PromptHistory[]
+
+  @@index([userId, status, startDate])
+  @@index([guestSessionId, createdAt])
+  @@index([propertyId, createdAt])
+  @@map("trips")
+}
+
+model TripDay {
+  id        String         @id @default(uuid()) @db.Uuid
+  tripId    String         @map("trip_id") @db.Uuid
+  dayNumber Int            @map("day_number")
+  date      DateTime       @db.Date
+  title     String?        @db.VarChar(160)
+  summary   String?        @db.VarChar(500)
+  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  trip      Trip           @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  activities TripActivity[]
+
+  @@unique([tripId, dayNumber])
+  @@unique([tripId, date])
+  @@map("trip_days")
+}
+
+model TripActivity {
+  id                   String         @id @default(uuid()) @db.Uuid
+  tripDayId            String         @map("trip_day_id") @db.Uuid
+  placeId              String         @map("place_id") @db.Uuid
+  promptHistoryId      String?        @map("prompt_history_id") @db.Uuid
+  position             Int
+  status               ActivityStatus @default(PLANNED)
+  startsAt             DateTime       @map("starts_at") @db.Timestamptz(3)
+  endsAt               DateTime       @map("ends_at") @db.Timestamptz(3)
+  plannedDurationMin   Int            @map("planned_duration_min")
+  travelMode           TravelMode?    @map("travel_mode")
+  travelDurationMin    Int?           @map("travel_duration_min")
+  travelDistanceMeters Int?           @map("travel_distance_meters")
+  rationale            String         @db.VarChar(500)
+  travelerNotes        String?        @map("traveler_notes") @db.Text
+  placeSnapshot        Json           @map("place_snapshot")
+  replacedActivityId   String?        @map("replaced_activity_id") @db.Uuid
+  createdAt            DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tripDay              TripDay        @relation(fields: [tripDayId], references: [id], onDelete: Cascade)
+  place                Place          @relation(fields: [placeId], references: [id], onDelete: Restrict)
+  promptHistory        PromptHistory? @relation(fields: [promptHistoryId], references: [id], onDelete: SetNull)
+  replacedActivity     TripActivity?  @relation("ActivityReplacement", fields: [replacedActivityId], references: [id], onDelete: SetNull)
+  replacements         TripActivity[] @relation("ActivityReplacement")
+
+  @@unique([tripDayId, position])
+  @@index([placeId, startsAt])
+  @@index([tripDayId, startsAt])
+  @@map("trip_activities")
+}
+
+model Favorite {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  placeId   String   @map("place_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  place     Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, placeId])
+  @@index([placeId, createdAt])
+  @@map("favorites")
+}
+
+model Review {
+  id            String       @id @default(uuid()) @db.Uuid
+  userId        String       @map("user_id") @db.Uuid
+  placeId       String       @map("place_id") @db.Uuid
+  rating        Int          @db.SmallInt
+  title         String?      @db.VarChar(120)
+  body          String       @db.Text
+  status        ReviewStatus @default(PENDING)
+  moderatedById String?      @map("moderated_by_id") @db.Uuid
+  moderatedAt   DateTime?    @map("moderated_at") @db.Timestamptz(3)
+  moderationNote String?     @map("moderation_note") @db.VarChar(500)
+  publishedAt   DateTime?    @map("published_at") @db.Timestamptz(3)
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  place         Place        @relation(fields: [placeId], references: [id], onDelete: Restrict)
+  moderatedBy   User?        @relation("ReviewModeratedBy", fields: [moderatedById], references: [id], onDelete: SetNull)
+
+  @@unique([userId, placeId])
+  @@index([placeId, status, publishedAt])
+  @@index([status, createdAt])
+  @@map("reviews")
+}
+
+model Subscription {
+  id                     String             @id @default(uuid()) @db.Uuid
+  hostId                 String             @map("host_id") @db.Uuid
+  stripeSubscriptionId   String             @unique @map("stripe_subscription_id") @db.VarChar(255)
+  stripePriceId          String             @map("stripe_price_id") @db.VarChar(255)
+  planCode               String             @map("plan_code") @db.VarChar(64)
+  status                 SubscriptionStatus
+  billingInterval        BillingInterval    @map("billing_interval")
+  quantity               Int                @default(1)
+  currentPeriodStart     DateTime           @map("current_period_start") @db.Timestamptz(3)
+  currentPeriodEnd       DateTime           @map("current_period_end") @db.Timestamptz(3)
+  cancelAtPeriodEnd      Boolean            @default(false) @map("cancel_at_period_end")
+  trialEndsAt            DateTime?          @map("trial_ends_at") @db.Timestamptz(3)
+  cancelledAt            DateTime?          @map("cancelled_at") @db.Timestamptz(3)
+  endedAt                DateTime?          @map("ended_at") @db.Timestamptz(3)
+  metadata               Json               @default("{}")
+  createdAt              DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  host                   Host               @relation(fields: [hostId], references: [id], onDelete: Restrict)
+  payments               Payment[]
+
+  @@index([hostId, status])
+  @@index([currentPeriodEnd])
+  @@map("subscriptions")
+}
+
+model Payment {
+  id                    String        @id @default(uuid()) @db.Uuid
+  hostId                String        @map("host_id") @db.Uuid
+  subscriptionId        String?       @map("subscription_id") @db.Uuid
+  stripePaymentIntentId String?       @unique @map("stripe_payment_intent_id") @db.VarChar(255)
+  stripeInvoiceId       String?       @unique @map("stripe_invoice_id") @db.VarChar(255)
+  amount                Decimal       @db.Decimal(12, 2)
+  refundedAmount        Decimal       @default(0) @map("refunded_amount") @db.Decimal(12, 2)
+  currency              String        @db.Char(3)
+  status                PaymentStatus
+  failureCode           String?       @map("failure_code") @db.VarChar(80)
+  failureMessage        String?       @map("failure_message") @db.VarChar(500)
+  paidAt                DateTime?     @map("paid_at") @db.Timestamptz(3)
+  createdAt             DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  host                  Host          @relation(fields: [hostId], references: [id], onDelete: Restrict)
+  subscription          Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([hostId, createdAt])
+  @@index([status, createdAt])
+  @@map("payments")
+}
+
+model Notification {
+  id            String             @id @default(uuid()) @db.Uuid
+  userId        String             @map("user_id") @db.Uuid
+  type          NotificationType
+  channel       NotificationChannel
+  status        NotificationStatus @default(PENDING)
+  subject       String             @db.VarChar(180)
+  body          String             @db.Text
+  data          Json               @default("{}")
+  dedupeKey     String?            @unique @map("dedupe_key") @db.VarChar(180)
+  scheduledAt   DateTime           @default(now()) @map("scheduled_at") @db.Timestamptz(3)
+  processingAt  DateTime?          @map("processing_at") @db.Timestamptz(3)
+  sentAt        DateTime?          @map("sent_at") @db.Timestamptz(3)
+  failedAt      DateTime?          @map("failed_at") @db.Timestamptz(3)
+  readAt        DateTime?          @map("read_at") @db.Timestamptz(3)
+  attempts      Int                @default(0)
+  lastErrorCode String?            @map("last_error_code") @db.VarChar(80)
+  createdAt     DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+  @@index([status, scheduledAt])
+  @@map("notifications")
+}
+
+model WeatherCache {
+  id          String   @id @default(uuid()) @db.Uuid
+  provider    String   @db.VarChar(40)
+  locationKey String   @map("location_key") @db.VarChar(120)
+  forecastDate DateTime @map("forecast_date") @db.Date
+  timezone    String   @db.VarChar(64)
+  payload     Json
+  fetchedAt   DateTime @map("fetched_at") @db.Timestamptz(3)
+  expiresAt   DateTime @map("expires_at") @db.Timestamptz(3)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@unique([provider, locationKey, forecastDate])
+  @@index([expiresAt])
+  @@map("weather_cache")
+}
+
+model ApiLog {
+  id            BigInt   @id @default(autoincrement())
+  requestId     String   @unique @map("request_id") @db.VarChar(128)
+  userId        String?  @map("user_id") @db.Uuid
+  method        String   @db.VarChar(12)
+  path          String   @db.VarChar(512)
+  statusCode    Int      @map("status_code") @db.SmallInt
+  durationMs    Int      @map("duration_ms")
+  ipHash        String?  @map("ip_hash") @db.VarChar(128)
+  userAgentHash String?  @map("user_agent_hash") @db.VarChar(128)
+  errorCode     String?  @map("error_code") @db.VarChar(80)
+  metadata      Json     @default("{}")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([createdAt])
+  @@index([statusCode, createdAt])
+  @@index([userId, createdAt])
+  @@map("api_logs")
+}
+
+model AuditLog {
+  id          BigInt      @id @default(autoincrement())
+  actorUserId String?     @map("actor_user_id") @db.Uuid
+  hostId      String?     @map("host_id") @db.Uuid
+  action      AuditAction
+  entityType  String      @map("entity_type") @db.VarChar(80)
+  entityId    String?     @map("entity_id") @db.VarChar(128)
+  requestId   String?     @map("request_id") @db.VarChar(128)
+  ipHash      String?     @map("ip_hash") @db.VarChar(128)
+  before      Json?
+  after       Json?
+  metadata    Json        @default("{}")
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  actor       User?       @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  host        Host?       @relation(fields: [hostId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId, createdAt])
+  @@index([hostId, createdAt])
+  @@index([entityType, entityId, createdAt])
+  @@index([requestId])
+  @@map("audit_logs")
+}
+
+model PromptHistory {
+  id                  String       @id @default(uuid()) @db.Uuid
+  userId              String?      @map("user_id") @db.Uuid
+  tripId              String?      @map("trip_id") @db.Uuid
+  model                String       @db.VarChar(80)
+  promptVersion        String       @map("prompt_version") @db.VarChar(40)
+  systemPromptHash     String       @map("system_prompt_hash") @db.VarChar(128)
+  inputHash            String       @map("input_hash") @db.VarChar(128)
+  candidatePlaceIds    Json         @map("candidate_place_ids")
+  requestPayload       Json         @map("request_payload")
+  responsePayload      Json?        @map("response_payload")
+  status               PromptStatus @default(PENDING)
+  validationErrors     Json?        @map("validation_errors")
+  inputTokens          Int?         @map("input_tokens")
+  outputTokens         Int?         @map("output_tokens")
+  costMicros           BigInt?      @map("cost_micros")
+  latencyMs            Int?         @map("latency_ms")
+  providerRequestId    String?      @map("provider_request_id") @db.VarChar(255)
+  createdAt            DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  completedAt          DateTime?    @map("completed_at") @db.Timestamptz(3)
+  user                 User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  trip                 Trip?        @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  activities           TripActivity[]
+
+  @@index([tripId, createdAt])
+  @@index([status, createdAt])
+  @@index([inputHash])
+  @@map("prompt_history")
+}
+
+model SearchHistory {
+  id             String        @id @default(uuid()) @db.Uuid
+  userId         String?       @map("user_id") @db.Uuid
+  guestSessionId String?       @map("guest_session_id") @db.Uuid
+  type           SearchType
+  query          String        @db.VarChar(255)
+  normalizedQuery String       @map("normalized_query") @db.VarChar(255)
+  filters        Json          @default("{}")
+  resultCount    Int           @map("result_count")
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  user           User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guestSession   GuestSession? @relation(fields: [guestSessionId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([guestSessionId, createdAt])
+  @@index([normalizedQuery, createdAt])
+  @@map("search_history")
+}
+
+model AnalyticsEvent {
+  id             BigInt        @id @default(autoincrement())
+  eventName      String        @map("event_name") @db.VarChar(100)
+  userId         String?       @map("user_id") @db.Uuid
+  guestSessionId String?       @map("guest_session_id") @db.Uuid
+  hostId         String?       @map("host_id") @db.Uuid
+  propertyId     String?       @map("property_id") @db.Uuid
+  sessionId      String?       @map("session_id") @db.VarChar(128)
+  properties     Json          @default("{}")
+  occurredAt     DateTime      @map("occurred_at") @db.Timestamptz(3)
+  receivedAt     DateTime      @default(now()) @map("received_at") @db.Timestamptz(3)
+  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  guestSession   GuestSession? @relation(fields: [guestSessionId], references: [id], onDelete: SetNull)
+  host           Host?         @relation(fields: [hostId], references: [id], onDelete: SetNull)
+  property       Property?     @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+  @@index([eventName, occurredAt])
+  @@index([hostId, occurredAt])
+  @@index([propertyId, occurredAt])
+  @@index([guestSessionId, occurredAt])
+  @@map("analytics_events")
+}
+
+model FeatureFlag {
+  id          String          @id @default(uuid()) @db.Uuid
+  key         String          @unique @db.VarChar(120)
+  description String          @db.VarChar(500)
+  type        FeatureFlagType @default(BOOLEAN)
+  enabled     Boolean         @default(false)
+  rules       Json            @default("{}")
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([enabled, key])
+  @@map("feature_flags")
+}

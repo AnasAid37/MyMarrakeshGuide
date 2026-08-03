@@ -1,0 +1,135 @@
+name: Continuous Integration
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Quality, tests and build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      NODE_ENV: test
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      NEXT_PUBLIC_API_URL: /api/v1
+      INTERNAL_API_ORIGIN: http://localhost:3001
+      DATABASE_URL: postgresql://mmg_app:test-password@localhost:5432/my_marrakesh_guide_test?schema=public
+      REDIS_URL: redis://localhost:6379/15
+      CORS_ORIGINS: http://localhost:3000
+      COOKIE_SECURE: "false"
+      COOKIE_SAME_SITE: strict
+      CSRF_SECRET: ci-csrf-secret-with-at-least-sixty-four-characters-12345678901234567890
+      JWT_ACCESS_SECRET: ci-access-secret-with-at-least-sixty-four-characters-123456789012345678
+      JWT_REFRESH_SECRET: ci-refresh-secret-with-at-least-sixty-four-characters-1234567890123456
+      SWAGGER_ENABLED: "false"
+      TRUST_PROXY: "false"
+      OPENAI_ENABLED: "false"
+      GOOGLE_MAPS_ENABLED: "false"
+      STRIPE_ENABLED: "false"
+      CLOUDINARY_ENABLED: "false"
+      POSTHOG_ENABLED: "false"
+      SENTRY_ENABLED: "false"
+
+    services:
+      postgres:
+        image: postgres:18.4-alpine
+        env:
+          POSTGRES_DB: my_marrakesh_guide_test
+          POSTGRES_USER: mmg_app
+          POSTGRES_PASSWORD: test-password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U mmg_app -d my_marrakesh_guide_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:8.2.8-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+
+      - name: Activate pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.18.0 --activate
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml', 'pnpm-workspace.yaml', '**/package.json') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Validate Prisma schema
+        run: pnpm --filter @mmg/database prisma:validate
+
+      - name: Apply test migrations
+        run: pnpm db:migrate:deploy
+
+      - name: Generate Prisma client
+        run: pnpm db:generate
+
+      - name: Check formatting and lint
+        run: pnpm format:check && pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Run unit and integration tests
+        run: pnpm test
+
+      - name: Run API end-to-end tests
+        run: pnpm --filter @mmg/api test:e2e
+
+      - name: Build all workspaces
+        run: pnpm build
+
+  browser:
+    name: Browser smoke tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      NEXT_PUBLIC_API_URL: /api/v1
+      INTERNAL_API_ORIGIN: http://127.0.0.1:3001
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+      - run: corepack enable && corepack prepare pnpm@11.18.0 --activate
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm --filter @mmg/web test:e2e
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          retention-days: 14

@@ -1,0 +1,69 @@
+{
+  "name": "my-marrakesh-guide",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Production monorepo for the MyMarrakeshGuide traveler concierge and hospitality SaaS platform.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "packageManager": "pnpm@11.18.0",
+  "engines": {
+    "node": ">=24.18.0 <25",
+    "pnpm": "11.18.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "clean": "turbo run clean && node scripts/clean.mjs",
+    "dev": "pnpm db:generate && turbo run dev --parallel",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:coverage": "turbo run test:coverage",
+    "test:e2e": "turbo run test:e2e",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
+    "bootstrap:env": "node scripts/create-env.mjs",
+    "db:generate": "pnpm --filter @mmg/database prisma:generate",
+    "db:migrate": "pnpm --filter @mmg/database prisma:migrate",
+    "db:migrate:deploy": "pnpm --filter @mmg/database prisma:migrate:deploy",
+    "db:seed": "pnpm --filter @mmg/database prisma:seed",
+    "db:studio": "pnpm --filter @mmg/database prisma:studio",
+    "infra:up": "docker compose -f compose.infrastructure.yaml up -d",
+    "infra:down": "docker compose -f compose.infrastructure.yaml down",
+    "compose:up": "docker compose up -d --build",
+    "compose:down": "docker compose down",
+    "compose:logs": "docker compose logs -f --tail=200",
+    "prepare": "simple-git-hooks"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.2.0",
+    "@commitlint/cli": "19.8.1",
+    "@commitlint/config-conventional": "19.8.1",
+    "lint-staged": "16.1.5",
+    "simple-git-hooks": "2.13.1",
+    "turbo": "2.5.6",
+    "typescript": "7.0.2"
+  },
+  "pnpm": {
+    "overrides": {
+      "react": "19.2.8",
+      "react-dom": "19.2.8"
+    },
+    "onlyBuiltDependencies": [
+      "@prisma/engines",
+      "argon2",
+      "prisma",
+      "sharp"
+    ]
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json,jsonc,css,md,yaml,yml}": [
+      "biome check --write --no-errors-on-unmatched"
+    ]
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm lint-staged",
+    "commit-msg": "pnpm exec commitlint --edit $1"
+  }
+}

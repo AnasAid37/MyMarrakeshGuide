@@ -1,0 +1,13 @@
+{
+  "extends": "@mmg/typescript-config/nextjs.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "#components/*": ["./src/components/*.tsx"],
+      "#lib/*": ["./src/lib/*.ts"],
+      "#hooks/*": ["./src/hooks/*.ts"]
+    },
+    "tsBuildInfoFile": "node_modules/.cache/ui.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "vitest.config.ts"]
+}

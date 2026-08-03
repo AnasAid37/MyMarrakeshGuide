@@ -1,0 +1,53 @@
+{
+  "name": "@mmg/api",
+  "version": "0.1.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "scripts": {
+    "build": "nest build",
+    "clean": "rm -rf dist coverage *.tsbuildinfo",
+    "dev": "nest start --watch",
+    "start": "node dist/main.js",
+    "start:prod": "node dist/main.js",
+    "lint": "biome check src test",
+    "test": "vitest run --config vitest.config.ts",
+    "test:coverage": "vitest run --coverage --config vitest.config.ts",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@mmg/contracts": "workspace:*",
+    "@mmg/database": "workspace:*",
+    "@nestjs/common": "catalog:",
+    "@nestjs/config": "4.0.4",
+    "@nestjs/core": "catalog:",
+    "@nestjs/platform-express": "catalog:",
+    "@nestjs/swagger": "11.4.6",
+    "@nestjs/throttler": "6.4.0",
+    "compression": "1.8.1",
+    "cookie-parser": "1.4.7",
+    "helmet": "8.1.0",
+    "ioredis": "6.0.0",
+    "nestjs-pino": "4.6.1",
+    "pino": "9.9.4",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@mmg/typescript-config": "workspace:*",
+    "@nestjs/cli": "11.0.10",
+    "@nestjs/testing": "catalog:",
+    "@types/compression": "1.8.1",
+    "@types/cookie-parser": "1.4.9",
+    "@types/express": "5.0.3",
+    "@types/node": "24.3.0",
+    "@types/supertest": "6.0.3",
+    "@vitest/coverage-v8": "3.2.4",
+    "pino-pretty": "13.1.1",
+    "supertest": "7.1.4",
+    "typescript": "catalog:",
+    "vitest": "3.2.4"
+  }
+}

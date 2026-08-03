@@ -1,0 +1,7 @@
+{
+  "extends": "@mmg/typescript-config/library.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts", "vitest.config.ts"]
+}

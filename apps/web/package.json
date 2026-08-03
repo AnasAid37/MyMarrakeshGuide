@@ -16,7 +16,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@hookform/resolvers": "5.2.1",
+    "@hookform/resolvers": "5.5.7",
     "@mmg/contracts": "workspace:*",
     "@mmg/ui": "workspace:*",
     "@tanstack/react-query": "5.101.4",
@@ -24,7 +24,7 @@
     "next": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "react-hook-form": "7.74.0",
+    "react-hook-form": "7.83.0",
     "zod": "catalog:"
   },
   "devDependencies": {

@@ -76,7 +76,7 @@ jobs:
           corepack prepare pnpm@11.18.0 --activate
 
       - name: Cache pnpm store
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.local/share/pnpm/store
           key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml', 'pnpm-workspace.yaml', '**/package.json') }}

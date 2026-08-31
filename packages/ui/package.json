@@ -38,10 +38,10 @@
   "devDependencies": {
     "@mmg/typescript-config": "workspace:*",
     "@tailwindcss/postcss": "catalog:",
-    "@types/react": "19.1.12",
-    "@types/react-dom": "19.1.9",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.5",
     "@vitest/coverage-v8": "3.2.4",
-    "postcss": "8.5.6",
+    "postcss": "8.5.26",
     "react": "catalog:",
     "react-dom": "catalog:",
     "tailwindcss": "catalog:",
